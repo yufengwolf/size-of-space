@@ -95,7 +95,7 @@ Inspired by [neal.fun/size-of-life](https://neal.fun/size-of-life/), but for the
 - **A soundtrack that grows with scale**: generative music built with the Web Audio API. It starts as a quiet pad and gains a sub-bass, arpeggios, a choir, strings, timpani and bells as you travel outward.
 - **Real data**: diameters, distances and facts for every object, with links to Wikipedia.
 - **Smooth navigation** with the wheel, trackpad, swipes, keyboard or timeline. Every object has its own shareable URL, e.g. [`#betelgeuse`](https://legendacr.github.io/size-of-space/#betelgeuse).
-- **English and Russian**, picked automatically from your browser.
+- **English, Russian and Chinese**, picked automatically from your browser (or forced with the `?lang=` URL parameter and the language button).
 - **Light**: a static site with one runtime dependency (three.js) that works offline once cloned.
 
 ## <img src="docs/icons/route.svg" width="26" height="26" align="top" /> The journey
@@ -127,13 +127,29 @@ The music starts with your first click or key press, because browsers don't allo
 ## <img src="docs/icons/terminal.svg" width="26" height="26" align="top" /> Run it locally
 
 ```bash
+# 1. 克隆并安装依赖（本仓库仅有 three.js 一个运行时依赖）
 git clone https://github.com/LegendaCR/size-of-space.git
 cd size-of-space
 npm install
+
+# 2. 开发预览（带热更新），默认地址 http://localhost:5173
 npm run dev
+
+# 3. 生产构建，纯静态产物输出到 dist/（可直接托管到任意静态服务器）
+npm run build
+
+# 4. 预览生产构建（静态服务），默认地址 http://localhost:4173
+npm run preview
 ```
 
-Then open http://localhost:5173. Run `npm run build` to make a production build in `dist/`, which you can host on any static server.
+> **端口说明**：若默认端口（5173 / 4173）被占用，Vite 会自动顺延到 5174、4174……；也可手动指定，例如 `npm run preview -- --port 8080`。
+> **离线可用**：`npm run build` 后 `dist/` 完全静态、可离线运行，丢到 GitHub Pages / Cloudflare Pages / Netlify 均可。
+
+### 语言切换
+
+- 右上角按钮循环切换 **EN → RU → 中**，按钮上显示「即将切到的语言」。
+- URL 参数强制指定：`?lang=zh`（可选 `en` / `ru` / `zh`）。
+- 选择会写入浏览器 `localStorage`，刷新后保持；浏览器语言为中文时默认进中文界面。
 
 ## <img src="docs/icons/plus.svg" width="26" height="26" align="top" /> Add your own object
 

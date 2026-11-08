@@ -5,7 +5,8 @@ const { KM, AU, LY } = UNITS;
 
 function num(v: number, lang: Lang, digits = 3) {
   const abs = Math.abs(v);
-  return new Intl.NumberFormat(lang === 'ru' ? 'ru-RU' : 'en-US', {
+  const loc = lang === 'ru' ? 'ru-RU' : lang === 'zh' ? 'zh-CN' : 'en-US';
+  return new Intl.NumberFormat(loc, {
     maximumSignificantDigits: Math.max(digits, Math.ceil(Math.log10(abs + 1))),
   }).format(v);
 }
@@ -63,6 +64,7 @@ export function formatAlt(m: number, lang: Lang, s: Strings) {
 const BIG: Record<Lang, [number, string][]> = {
   en: [[1e12, 'trillion'], [1e9, 'billion'], [1e6, 'million']],
   ru: [[1e12, 'трлн'], [1e9, 'млрд'], [1e6, 'млн']],
+  zh: [[1e12, '万亿'], [1e8, '亿'], [1e4, '万']],
 };
 
 export function formatRatio(x: number, lang: Lang) {

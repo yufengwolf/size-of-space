@@ -26,6 +26,7 @@ try {
 }
 
 let lang: Lang = detectLang();
+const LANGS: Lang[] = ['en', 'ru', 'zh'];
 let S = STRINGS[lang];
 const ambient = new Ambient();
 
@@ -241,7 +242,8 @@ function applyLang() {
     const v = S[el.dataset.i18n as keyof typeof S];
     if (typeof v === 'string') el.textContent = v;
   });
-  $('btn-lang').textContent = lang === 'en' ? 'RU' : 'EN';
+  const nextLang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
+  $('btn-lang').textContent = nextLang === 'en' ? 'EN' : nextLang === 'ru' ? 'RU' : '中';
   refreshLabels();
   fillSelects();
   updateCompareText();
@@ -249,7 +251,7 @@ function applyLang() {
   if (panelIndex >= 0) openPanel(panelIndex);
 }
 $('btn-lang').addEventListener('click', () => {
-  lang = lang === 'en' ? 'ru' : 'en';
+  lang = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
   try { localStorage.setItem('sos-lang', lang); } catch { /* ignore */ }
   applyLang();
 });

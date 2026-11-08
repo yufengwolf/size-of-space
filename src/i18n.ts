@@ -1,6 +1,6 @@
 import type { Category } from './data/objects';
 
-export type Lang = 'en' | 'ru';
+export type Lang = 'en' | 'ru' | 'zh';
 
 /** "раз" / "раза" agreement for a formatted Russian number. */
 function raz(x: string) {
@@ -94,17 +94,60 @@ export const STRINGS = {
       galaxyGroup: 'Группа галактик', structure: 'Крупномасштабная структура', universe: 'Вселенная',
     } satisfies Record<Category, string>,
   },
+  zh: {
+    title: '宇宙的尺度',
+    tagline: '从一颗小行星到可观测宇宙',
+    start: '滚动、滑动或按 → 开始旅程',
+    diameter: '直径',
+    compared: '与地球相比',
+    distance: '距地球的距离',
+    prevRatio: (x: string, name: string) => `${name} 的 ${x} 倍`,
+    tipAu: '天文单位（AU）：地球到太阳的平均距离，约 1.5 亿公里。',
+    tipLy: '光年：光在一年内走过的距离，约 9.46 万亿公里（6.3 万 AU）。',
+    compare: '对比',
+    compareTitle: '对比任意两个天体',
+    swap: '交换',
+    cmpWider: (big: string, x: string, small: string) => `${big} 是 ${small} 的 ${x} 倍宽`,
+    cmpSame: '请选择两个不同的天体进行对比',
+    cmpVolume: (n: string, small: string) => `体积约为 ${small} 的 ${n} 倍`,
+    cmpZoom: (z: string) => `放大 ×${z}`,
+    youAreHere: '你在这里',
+    readMore: '在维基百科上了解更多',
+    clickHint: '点击查看详情',
+    endTitle: '我们能看见的一切的边界',
+    endText: '你刚刚跨越了 24 个数量级：从一颗比街区还小的小行星，直到整个可观测宇宙。',
+    restart: '回到起点',
+    star: '在 GitHub 上点星',
+    sound: '声音',
+    scale: '比例尺',
+    close: '关闭',
+    times: '×',
+    earths: (x: string) => `${x} 个地球并排`,
+    smallerThanEarth: (x: string) => `地球直径的 ${x}`,
+    units: {
+      m: '米', km: '公里', mkm: '百万公里', bkm: '十亿公里', au: 'AU', ly: '光年',
+      mly: '百万光年', bly: '十亿光年',
+    },
+    cat: {
+      asteroid: '小行星', comet: '彗星', moon: '卫星', dwarf: '矮行星', planet: '行星',
+      remnant: '恒星残骸', star: '恒星', blackhole: '黑洞', system: '太阳系',
+      nebula: '星云', cluster: '星团', region: '星系区域', galaxy: '星系',
+      galaxyGroup: '星系群', structure: '大尺度结构', universe: '宇宙',
+    } satisfies Record<Category, string>,
+  },
 };
 
 export type Strings = (typeof STRINGS)['en'];
 
 export function detectLang(): Lang {
   const q = new URLSearchParams(location.search).get('lang');
-  if (q === 'en' || q === 'ru') return q;
+  if (q === 'en' || q === 'ru' || q === 'zh') return q;
   try {
     const saved = localStorage.getItem('sos-lang');
-    if (saved === 'en' || saved === 'ru') return saved;
+    if (saved === 'en' || saved === 'ru' || saved === 'zh') return saved;
   } catch { /* storage unavailable */ }
   const nav = (navigator.languages?.[0] ?? navigator.language ?? 'en').toLowerCase();
-  return /^(ru|uk|be|kk)/.test(nav) ? 'ru' : 'en';
+  if (/^(ru|uk|be|kk)/.test(nav)) return 'ru';
+  if (/^zh/.test(nav)) return 'zh';
+  return 'en';
 }
