@@ -137,7 +137,14 @@ function setPanelCollapsed(collapsed: boolean) {
 }
 function openPanel(i: number) {
   const fresh = panelIndex !== i || !panel.classList.contains('open');
-  if (fresh) setPanelCollapsed(compactUI());
+  if (fresh) {
+    setPanelCollapsed(compactUI());
+    // Freeze the camera on the selected object while the card is up. Without
+    // this the view keeps easing towards its old target, so closing the card
+    // appears to make the whole scene jump/change.
+    progress = target = i;
+    lastInput = performance.now();
+  }
   panelIndex = i;
   const o = OBJECTS[i];
   $('p-cat').textContent = S.cat[o.cat];
@@ -161,12 +168,13 @@ function openPanel(i: number) {
   panel.classList.add('open');
   panel.setAttribute('aria-hidden', 'false');
 }
+/** Closing the card is pure UI: never touch progress, target, zoom or hash. */
 function closePanel() {
   panelIndex = -1;
   panel.classList.remove('open');
   panel.setAttribute('aria-hidden', 'true');
 }
-$('panel-close').addEventListener('click', closePanel);
+$('panel-close').addEventListener('click', (e) => { e.stopPropagation(); closePanel(); });
 $('panel-toggle').addEventListener('click', (e) => {
   e.stopPropagation();
   setPanelCollapsed(!panel.classList.contains('collapsed'));
@@ -302,9 +310,12 @@ $('btn-next').addEventListener('click', () => go(Math.round(target) + 1));
 $('btn-restart').addEventListener('click', () => go(0));
 
 // ---------- zoom (−/+ on the scale, a live reference not a fixed guide) ----------
-const ZOOM_STEP = 1.4;
+const ZOOM_STEP = 1.25;
 const zoomIn = $('zoom-in'), zoomOut = $('zoom-out');
-const setZoomBtn = () => { zoomIn.disabled = universe.zoomValue >= 2.5; zoomOut.disabled = universe.zoomValue <= 0.35; };
+const setZoomBtn = () => {
+  zoomIn.disabled = universe.zoomValue >= universe.zoomMax - 1e-3;
+  zoomOut.disabled = universe.zoomValue <= universe.zoomMin + 1e-3;
+};
 zoomIn.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue * ZOOM_STEP); setZoomBtn(); });
 zoomOut.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue / ZOOM_STEP); setZoomBtn(); });
 setZoomBtn();
@@ -429,6 +440,9 @@ function compareFrame(now: number, dt: number) {
 let wasCompact = compactUI();
 function resize() {
   universe.resize(window.innerWidth, window.innerHeight);
+  // maxZoom depends on the viewport; re-clamp and keep the buttons in sync.
+  universe.setZoom(universe.zoomValue);
+  setZoomBtn();
   const c = compactUI();
   if (c !== wasCompact) {
     wasCompact = c;

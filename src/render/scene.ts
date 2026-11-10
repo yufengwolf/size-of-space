@@ -156,18 +156,24 @@ export class Universe {
     const f = p - i;
     const r0 = this.rs[i], r1 = this.rs[i + 1];
     const R = Math.exp(Math.log(r0) + (Math.log(r1) - Math.log(r0)) * f);
-    const g = r1 === r0 ? f : (R - r0) / (r1 - r0);
-    const camX = this.xs[i] + (this.xs[i + 1] - this.xs[i]) * g;
-    const fr = this.focusRadius(p);
-    // A solid star zoomed past the viewport would fill the whole screen with
-    // one flat colour and look like a locked view. Cap its on-screen radius.
-    const cap = (Math.min(this.width, this.height) * 0.4) / fr;
-    const k = (fr / R) * Math.min(this.zoom, cap); // px per metre
+    // Advance the camera linearly with the input. The old geometric `(R-r0)/(r1-r0)`
+    // barely moved for most of a step whenever two neighbours differed greatly
+    // in size, which made the view look frozen between star-sized objects.
+    const camX = this.xs[i] + (this.xs[i + 1] - this.xs[i]) * f;
+    const k = (this.focusRadius(p) / R) * this.zoom; // px per metre
     return { camX, k, R };
   }
 
-  setZoom(z: number) { this.zoom = Math.max(0.35, Math.min(2.5, z)); }
+  /** Largest zoom that still keeps the focused disc's edges inside the short side. */
+  private maxZoom() {
+    // Keep the focused disc's diameter at roughly the short side of the screen:
+    // larger and a solid star fills the viewport with one flat colour again.
+    return Math.min(6, (Math.min(this.width, this.height) * 0.5) / Math.max(1, this.focusRadius()));
+  }
+  setZoom(z: number) { this.zoom = Math.max(0.18, Math.min(this.maxZoom(), z)); }
   get zoomValue() { return this.zoom; }
+  get zoomMax() { return this.maxZoom(); }
+  get zoomMin() { return 0.18; }
 
   private material(o: SpaceObject) {
     const L = o.look;
@@ -221,6 +227,7 @@ export class Universe {
     const placed: Placed[] = [];
     const lo = Math.max(0, Math.floor(progress) - 5);
     const hi = Math.min(OBJECTS.length - 1, Math.floor(progress) + 3);
+    const shortSide = Math.min(this.width, this.height);
 
     this.meshes.forEach((m, i) => {
       if (m && (i < lo || i > hi)) m.visible = false;
@@ -232,15 +239,27 @@ export class Universe {
       const x = (this.xs[i] - camX) * k;
       const ext = this.ext(o);
       const half = r * ext;
-      // Skip neighbours that are so much larger than the current scale that
-      // their quad would smear across the entire viewport as a flat wall.
+      // Hard guard for absurd quads.
       const maxHalf = Math.max(this.width, this.height) * 2.5;
       const onScreen = x + half > -this.width / 2 && x - half < this.width / 2 && r > 0.35 && half < maxHalf;
       if (!onScreen) {
         if (this.meshes[i]) this.meshes[i]!.visible = false;
         continue;
       }
-      this.place(i, x, yOff, r, time);
+      // A neighbour far larger than the viewport used to paint the entire
+      // screen with one flat colour (solid stars are the worst case), which
+      // reads as a "locked" view. Fade such giants out so the starfield and
+      // the focused object always stay visible. Only the distant oversized
+      // neighbours are faded; the two objects the camera is travelling
+      // between are exempt (they can also grow past the threshold on zoom).
+      const lead = i === Math.floor(progress) || i === Math.ceil(progress);
+      const t = r / (shortSide * 0.7);
+      const fade = lead ? 1 : 1 - THREE.MathUtils.smoothstep(t, 0.7, 1.25);
+      if (fade <= 0.01) {
+        if (this.meshes[i]) this.meshes[i]!.visible = false;
+        continue;
+      }
+      this.place(i, x, yOff, r, time, fade);
       placed.push({ index: i, x, y: -yOff, r, ext });
     }
 
@@ -250,7 +269,7 @@ export class Universe {
   }
 
   /** Show object i centred at (x, y) (three.js coordinates, y up) with radius r px. */
-  private place(i: number, x: number, y: number, r: number, time: number) {
+  private place(i: number, x: number, y: number, r: number, time: number, fade = 1) {
     const o = OBJECTS[i];
     let m = this.meshes[i];
     if (!m) {
@@ -267,7 +286,7 @@ export class Universe {
     const u = m.material.uniforms;
     u.uTime.value = time;
     u.uPx.value = r * this.renderer.getPixelRatio();
-    u.uAlpha.value = Math.min(1, r / 1.5);
+    u.uAlpha.value = Math.min(1, r / 1.5) * fade;
     const at = m.material.userData.loadedAt as number | undefined;
     if (at !== undefined) u.uLoaded.value = Math.min(1, (performance.now() - at) / 500);
     return m;
