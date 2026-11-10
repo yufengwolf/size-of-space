@@ -69,6 +69,7 @@ export class Universe {
   private rs: number[] = [];
   width = 1;
   height = 1;
+  private zoom = 1; // user zoom multiplier (set by the scale −/+ buttons)
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
@@ -142,7 +143,9 @@ export class Universe {
     // Pull back a little on the final object to leave room for the outro.
     const end = Math.min(1, Math.max(0, progress - (n - 2)));
     const wf = this.width < 700 ? 0.3 : 0.2;
-    return Math.min(this.width * wf, this.height * 0.27) * (1 - 0.3 * end * end);
+    // On phones (portrait or landscape) keep nebulae/clusters from swallowing the view.
+    const compact = this.width <= 760 || (this.height <= 520 && this.width <= 960);
+    return Math.min(this.width * wf, this.height * 0.27) * (1 - 0.3 * end * end) * (compact ? 0.72 : 1);
   }
 
   /** Metres per pixel at a given progress. */
@@ -156,8 +159,11 @@ export class Universe {
     const g = r1 === r0 ? f : (R - r0) / (r1 - r0);
     const camX = this.xs[i] + (this.xs[i + 1] - this.xs[i]) * g;
     const k = this.focusRadius(p) / R; // px per metre
-    return { camX, k, R };
+    return { camX, k: k * this.zoom, R };
   }
+
+  setZoom(z: number) { this.zoom = Math.max(0.25, Math.min(8, z)); }
+  get zoomValue() { return this.zoom; }
 
   private material(o: SpaceObject) {
     const L = o.look;
@@ -205,7 +211,7 @@ export class Universe {
   }
 
   render(progress: number, time: number): Placed[] {
-    const { camX, k } = this.view(progress);
+    const { camX, k, R } = this.view(progress);
     const dpr = this.renderer.getPixelRatio();
     const yOff = this.height * (0.03 - 0.07 * Math.min(1, Math.max(0, progress - (OBJECTS.length - 2))));
     const placed: Placed[] = [];
@@ -231,7 +237,7 @@ export class Universe {
       placed.push({ index: i, x, y: -yOff, r, ext });
     }
 
-    this.background(Math.log10(2 * (this.focusRadius(progress) / k)), progress, time);
+    this.background(Math.log10(2 * R), progress, time);
     this.renderer.render(this.scene, this.camera);
     return placed;
   }
@@ -280,16 +286,18 @@ export class Universe {
     const [si, bi] = OBJECTS[a].d <= OBJECTS[b].d ? [a, b] : [b, a];
     this.meshes.forEach((m) => m && (m.visible = false));
     const w = this.width, h = this.height;
-    const mobile = w < 700;
+    const compact = w <= 760 || (h <= 520 && w <= 960);
+    const landscape = h <= 520 && w > h;
     // Keep everything between the selector bar (top) and the ratio text + labels (bottom).
-    const top = mobile ? 172 : 112, bottom = 160;
+    const top = landscape ? 44 : compact ? 96 : 112;
+    const bottom = landscape ? 44 : compact ? 72 : 160;
     const yOff = h / 2 - (top + h - bottom) / 2;
     const vb = this.visualExt(OBJECTS[bi]);
-    const R = Math.max(24, Math.min(w * (mobile ? 0.3 : 0.24), h * 0.27, ((h - top - bottom) / 2) * 0.95) / Math.sqrt(vb));
+    const R = Math.max(24, Math.min(w * 0.24, h * 0.27, ((h - top - bottom) / 2) * 0.95) / Math.sqrt(vb));
     const r = R * ratio;
     const needInset = si !== bi && r < 14;
     const dotY = h / 2 - yOff;
-    const size = Math.round(Math.max(64, Math.min(mobile ? 140 : 200, R * 1.1, dotY - top - 40)));
+    const size = Math.round(Math.max(64, Math.min(compact ? 110 : 200, R * 1.1, dotY - top - 40)));
     const gap = Math.max(36, R * 0.25 + 18, needInset ? size / 2 + 28 : 0);
     const half = R * vb; // visible half-width of the big object
     const sHalf = r * this.visualExt(OBJECTS[si]); // and of the small one

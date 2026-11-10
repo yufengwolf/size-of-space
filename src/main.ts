@@ -126,7 +126,18 @@ track.addEventListener('pointerup', () => { dragTrack = false; setTarget(Math.ro
 
 // ---------- panel ----------
 const panel = $('panel');
+// Small screens: the info card starts as a slim, expandable strip so the 3D view stays visible.
+const compactUI = () => window.innerWidth <= 760 || (window.innerHeight <= 520 && window.innerWidth <= 960);
+function setPanelCollapsed(collapsed: boolean) {
+  panel.classList.toggle('collapsed', collapsed);
+  const t = $('panel-toggle');
+  t.textContent = collapsed ? '＋' : '−';
+  t.setAttribute('aria-label', collapsed ? 'Expand panel' : 'Collapse panel');
+  t.title = collapsed ? '展开介绍 / Expand' : '折叠介绍 / Collapse';
+}
 function openPanel(i: number) {
+  const fresh = panelIndex !== i || !panel.classList.contains('open');
+  if (fresh) setPanelCollapsed(compactUI());
   panelIndex = i;
   const o = OBJECTS[i];
   $('p-cat').textContent = S.cat[o.cat];
@@ -156,6 +167,10 @@ function closePanel() {
   panel.setAttribute('aria-hidden', 'true');
 }
 $('panel-close').addEventListener('click', closePanel);
+$('panel-toggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  setPanelCollapsed(!panel.classList.contains('collapsed'));
+});
 
 // ---------- compare ----------
 const selA = $<HTMLSelectElement>('cmp-a'), selB = $<HTMLSelectElement>('cmp-b');
@@ -286,6 +301,13 @@ $('btn-prev').addEventListener('click', () => go(Math.round(target) - 1));
 $('btn-next').addEventListener('click', () => go(Math.round(target) + 1));
 $('btn-restart').addEventListener('click', () => go(0));
 
+// ---------- zoom (−/+ on the scale, a live reference not a fixed guide) ----------
+const ZOOM_STEP = 1.4;
+const zoomIn = $('zoom-in'), zoomOut = $('zoom-out');
+const setZoomBtn = () => { zoomIn.disabled = universe.zoomValue >= 8; zoomOut.disabled = universe.zoomValue <= 0.25; };
+zoomIn.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue * ZOOM_STEP); setZoomBtn(); });
+zoomOut.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue / ZOOM_STEP); setZoomBtn(); });
+
 // ---------- input ----------
 window.addEventListener('wheel', (e) => {
   if ((e.target as HTMLElement).closest('.panel')) return;
@@ -402,8 +424,14 @@ function compareFrame(now: number, dt: number) {
   ambient.setDepth(Math.max(a, b) / (N - 1));
 }
 
+let wasCompact = compactUI();
 function resize() {
   universe.resize(window.innerWidth, window.innerHeight);
+  const c = compactUI();
+  if (c !== wasCompact) {
+    wasCompact = c;
+    if (panel.classList.contains('open')) setPanelCollapsed(c);
+  }
 }
 window.addEventListener('resize', resize);
 resize();
