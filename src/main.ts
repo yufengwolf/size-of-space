@@ -126,25 +126,7 @@ track.addEventListener('pointerup', () => { dragTrack = false; setTarget(Math.ro
 
 // ---------- panel ----------
 const panel = $('panel');
-// Small screens: the info card starts as a slim, expandable strip so the 3D view stays visible.
-const compactUI = () => window.innerWidth <= 760 || (window.innerHeight <= 520 && window.innerWidth <= 960);
-function setPanelCollapsed(collapsed: boolean) {
-  panel.classList.toggle('collapsed', collapsed);
-  const t = $('panel-toggle');
-  t.textContent = collapsed ? '＋' : '−';
-  t.setAttribute('aria-label', collapsed ? 'Expand panel' : 'Collapse panel');
-  t.title = collapsed ? '展开介绍 / Expand' : '折叠介绍 / Collapse';
-}
 function openPanel(i: number) {
-  const fresh = panelIndex !== i || !panel.classList.contains('open');
-  if (fresh) {
-    setPanelCollapsed(compactUI());
-    // Freeze the camera on the selected object while the card is up. Without
-    // this the view keeps easing towards its old target, so closing the card
-    // appears to make the whole scene jump/change.
-    progress = target = i;
-    lastInput = performance.now();
-  }
   panelIndex = i;
   const o = OBJECTS[i];
   $('p-cat').textContent = S.cat[o.cat];
@@ -168,17 +150,12 @@ function openPanel(i: number) {
   panel.classList.add('open');
   panel.setAttribute('aria-hidden', 'false');
 }
-/** Closing the card is pure UI: never touch progress, target, zoom or hash. */
 function closePanel() {
   panelIndex = -1;
   panel.classList.remove('open');
   panel.setAttribute('aria-hidden', 'true');
 }
-$('panel-close').addEventListener('click', (e) => { e.stopPropagation(); closePanel(); });
-$('panel-toggle').addEventListener('click', (e) => {
-  e.stopPropagation();
-  setPanelCollapsed(!panel.classList.contains('collapsed'));
-});
+$('panel-close').addEventListener('click', closePanel);
 
 // ---------- compare ----------
 const selA = $<HTMLSelectElement>('cmp-a'), selB = $<HTMLSelectElement>('cmp-b');
@@ -309,21 +286,9 @@ $('btn-prev').addEventListener('click', () => go(Math.round(target) - 1));
 $('btn-next').addEventListener('click', () => go(Math.round(target) + 1));
 $('btn-restart').addEventListener('click', () => go(0));
 
-// ---------- zoom (−/+ on the scale, a live reference not a fixed guide) ----------
-const ZOOM_STEP = 1.25;
-const zoomIn = $('zoom-in'), zoomOut = $('zoom-out');
-const setZoomBtn = () => {
-  zoomIn.disabled = universe.zoomValue >= universe.zoomMax - 1e-3;
-  zoomOut.disabled = universe.zoomValue <= universe.zoomMin + 1e-3;
-};
-zoomIn.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue * ZOOM_STEP); setZoomBtn(); });
-zoomOut.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue / ZOOM_STEP); setZoomBtn(); });
-setZoomBtn();
-
 // ---------- input ----------
 window.addEventListener('wheel', (e) => {
-  const t = e.target;
-  if (t instanceof Element && t.closest('.panel')) return;
+  if ((e.target as HTMLElement).closest('.panel')) return;
   e.preventDefault();
   if (cmp) return;
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
@@ -437,17 +402,8 @@ function compareFrame(now: number, dt: number) {
   ambient.setDepth(Math.max(a, b) / (N - 1));
 }
 
-let wasCompact = compactUI();
 function resize() {
   universe.resize(window.innerWidth, window.innerHeight);
-  // maxZoom depends on the viewport; re-clamp and keep the buttons in sync.
-  universe.setZoom(universe.zoomValue);
-  setZoomBtn();
-  const c = compactUI();
-  if (c !== wasCompact) {
-    wasCompact = c;
-    if (panel.classList.contains('open')) setPanelCollapsed(c);
-  }
 }
 window.addEventListener('resize', resize);
 resize();
@@ -482,11 +438,9 @@ function frame(now: number) {
   for (const p of order) {
     if (p.r < 2.5 || (p.r < 9 && p.index !== cur)) continue;
     const el = labelEls[p.index];
-    const ly = Math.min(
-      universe.height - 100,
-      universe.height / 2 + p.y + p.r * Math.min(p.ext, 1.12) + 14,
-    );
+    const ly = universe.height / 2 + p.y + p.r * Math.min(p.ext, 1.12) + 14;
     const lx = universe.width / 2 + p.x;
+    if (ly > universe.height - 100) continue;
     if (!labelWidths[p.index] && el.offsetWidth) labelWidths[p.index] = el.offsetWidth;
     const w = (labelWidths[p.index] || 120) / 2 + 8;
     const box: [number, number, number, number] = [lx - w, ly, lx + w, ly + 40];

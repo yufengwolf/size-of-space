@@ -72,13 +72,9 @@
     </section>
 
     <aside id="panel" class="panel" aria-hidden="true">
-      <div class="panel-head">
-        <button id="panel-toggle" class="panel-toggle" type="button" aria-label="Collapse panel">−</button>
-        <span class="panel-title" id="p-name"></span>
-        <button id="panel-close" class="close" aria-label="Close">×</button>
-      </div>
-      <div class="panel-body">
+      <button id="panel-close" class="close" aria-label="Close">×</button>
       <div class="cat" id="p-cat"></div>
+      <h2 id="p-name"></h2>
       <dl>
         <div><dt data-i18n="diameter"></dt><dd id="p-size"></dd></div>
         <div><dt data-i18n="compared"></dt><dd id="p-earth"></dd></div>
@@ -88,16 +84,10 @@
       <p class="fact" id="p-fact"></p>
       <a id="p-wiki" class="wiki" target="_blank" rel="noopener"><span data-i18n="readMore"></span> ↗</a>
       <p class="credits" id="p-credits"></p>
-      </div>
     </aside>
 
     <footer class="bottom">
-      <div class="scale" id="scale">
-        <button id="zoom-out" class="zoom-btn" type="button" aria-label="Zoom out">−</button>
-        <div class="bar" id="scale-bar"></div>
-        <span id="scale-label"></span>
-        <button id="zoom-in" class="zoom-btn" type="button" aria-label="Zoom in">＋</button>
-      </div>
+      <div class="scale"><div class="bar" id="scale-bar"></div><span id="scale-label"></span></div>
       <div class="track" id="track">
         <div class="rail"><div class="fill" id="track-fill"></div></div>
         <div class="ticks" id="ticks"></div>

@@ -496,12 +496,7 @@ void main() {
     float s = stars(p, 45.0, 0.12) + stars(p, 120.0, 0.1) * 0.8;
     o = over(vec4(mix(uC4, vec3(1.0), 0.6), clamp(s, 0.0, 1.0) * smoothstep(1.0, 0.8, r)), o);
   }
-  // ext is a fade margin for the quad, NOT extra size for the object.
-  // Without this radial cut, band/irregular nebulae can bleed out to ~1.3x
-  // their catalogue radius and look bigger than the listed diameter.
-  gl_FragColor = vec4(o.rgb, o.a * uAlpha
-    * smoothstep(uExt, uExt * 0.86, max(abs(p.x), abs(p.y)))
-    * (1.0 - smoothstep(0.92, 1.08, r)));
+  gl_FragColor = vec4(o.rgb, o.a * uAlpha * smoothstep(uExt, uExt * 0.86, max(abs(p.x), abs(p.y))));
 }
 `;
 
