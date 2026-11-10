@@ -158,11 +158,15 @@ export class Universe {
     const R = Math.exp(Math.log(r0) + (Math.log(r1) - Math.log(r0)) * f);
     const g = r1 === r0 ? f : (R - r0) / (r1 - r0);
     const camX = this.xs[i] + (this.xs[i + 1] - this.xs[i]) * g;
-    const k = this.focusRadius(p) / R; // px per metre
-    return { camX, k: k * this.zoom, R };
+    const fr = this.focusRadius(p);
+    // A solid star zoomed past the viewport would fill the whole screen with
+    // one flat colour and look like a locked view. Cap its on-screen radius.
+    const cap = (Math.min(this.width, this.height) * 0.4) / fr;
+    const k = (fr / R) * Math.min(this.zoom, cap); // px per metre
+    return { camX, k, R };
   }
 
-  setZoom(z: number) { this.zoom = Math.max(0.25, Math.min(8, z)); }
+  setZoom(z: number) { this.zoom = Math.max(0.35, Math.min(2.5, z)); }
   get zoomValue() { return this.zoom; }
 
   private material(o: SpaceObject) {
@@ -228,7 +232,10 @@ export class Universe {
       const x = (this.xs[i] - camX) * k;
       const ext = this.ext(o);
       const half = r * ext;
-      const onScreen = x + half > -this.width / 2 && x - half < this.width / 2 && r > 0.35 && r < this.width * 60;
+      // Skip neighbours that are so much larger than the current scale that
+      // their quad would smear across the entire viewport as a flat wall.
+      const maxHalf = Math.max(this.width, this.height) * 2.5;
+      const onScreen = x + half > -this.width / 2 && x - half < this.width / 2 && r > 0.35 && half < maxHalf;
       if (!onScreen) {
         if (this.meshes[i]) this.meshes[i]!.visible = false;
         continue;

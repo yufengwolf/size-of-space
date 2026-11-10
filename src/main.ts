@@ -304,13 +304,15 @@ $('btn-restart').addEventListener('click', () => go(0));
 // ---------- zoom (−/+ on the scale, a live reference not a fixed guide) ----------
 const ZOOM_STEP = 1.4;
 const zoomIn = $('zoom-in'), zoomOut = $('zoom-out');
-const setZoomBtn = () => { zoomIn.disabled = universe.zoomValue >= 8; zoomOut.disabled = universe.zoomValue <= 0.25; };
+const setZoomBtn = () => { zoomIn.disabled = universe.zoomValue >= 2.5; zoomOut.disabled = universe.zoomValue <= 0.35; };
 zoomIn.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue * ZOOM_STEP); setZoomBtn(); });
 zoomOut.addEventListener('click', (e) => { e.stopPropagation(); universe.setZoom(universe.zoomValue / ZOOM_STEP); setZoomBtn(); });
+setZoomBtn();
 
 // ---------- input ----------
 window.addEventListener('wheel', (e) => {
-  if ((e.target as HTMLElement).closest('.panel')) return;
+  const t = e.target;
+  if (t instanceof Element && t.closest('.panel')) return;
   e.preventDefault();
   if (cmp) return;
   const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
@@ -466,9 +468,11 @@ function frame(now: number) {
   for (const p of order) {
     if (p.r < 2.5 || (p.r < 9 && p.index !== cur)) continue;
     const el = labelEls[p.index];
-    const ly = universe.height / 2 + p.y + p.r * Math.min(p.ext, 1.12) + 14;
+    const ly = Math.min(
+      universe.height - 100,
+      universe.height / 2 + p.y + p.r * Math.min(p.ext, 1.12) + 14,
+    );
     const lx = universe.width / 2 + p.x;
-    if (ly > universe.height - 100) continue;
     if (!labelWidths[p.index] && el.offsetWidth) labelWidths[p.index] = el.offsetWidth;
     const w = (labelWidths[p.index] || 120) / 2 + 8;
     const box: [number, number, number, number] = [lx - w, ly, lx + w, ly + 40];
